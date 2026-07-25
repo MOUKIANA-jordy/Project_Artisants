@@ -7,12 +7,15 @@ from rest_framework import (
 )
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from apps.messaging.models import Conversation
 
 from apps.demandes.models import DemandeTravaux
 
 from .models import Proposition
 from .permissions import IsPropositionParticipant
 from .serializers import PropositionSerializer
+from apps.notifications.models import Notification
+from apps.notifications.services import create_notification
 
 
 class PropositionViewSet(viewsets.ModelViewSet):
@@ -94,6 +97,19 @@ class PropositionViewSet(viewsets.ModelViewSet):
         serializer.save(
             artisan=user.artisan_profile
         )
+
+    create_notification(
+    destinataire=proposition.demande.client,
+    type_notification=(
+        Notification.Type.NOUVELLE_PROPOSITION
+    ),
+    titre="Nouvelle proposition",
+    message=(
+        f"{proposition.artisan.nom_entreprise} "
+        f"a répondu à votre demande."
+    ),
+    lien=f"/demandes/{proposition.demande_id}",
+)
 
     def perform_update(self, serializer):
         proposition = self.get_object()
@@ -241,6 +257,27 @@ class PropositionViewSet(viewsets.ModelViewSet):
                 "updated_at",
             ]
         )
+
+        Conversation.objects.get_or_create(
+        demande=demande,
+        defaults={
+        "client": demande.client,
+        "artisan": proposition.artisan,
+    },
+)
+
+        create_notification(
+        destinataire=proposition.artisan.user,
+        type_notification=(
+        Notification.Type.PROPOSITION_ACCEPTEE
+    ),
+    titre="Proposition acceptée",
+    message=(
+        f"Votre proposition pour « {demande.titre} » "
+        f"a été acceptée."
+    ),
+    lien=f"/conversations/{demande.conversation.id}",
+)
 
         Proposition.objects.filter(
             demande=demande,
