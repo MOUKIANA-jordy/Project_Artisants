@@ -1,10 +1,8 @@
-from django.shortcuts import render
 from django.db.models import Avg
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import (
     filters,
     permissions,
-    serializers,
     status,
     viewsets,
 )
@@ -12,6 +10,8 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from apps.core.pagination import StandardResultsSetPagination
+from apps.notifications.models import Notification
+from apps.notifications.services import create_notification
 
 from .models import Review
 from .permissions import IsReviewOwnerOrReadOnly
@@ -82,9 +82,20 @@ class ReviewViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         artisan = serializer.validated_data.pop("artisan")
 
-        serializer.save(
+        review = serializer.save(
             client=self.request.user,
             artisan=artisan,
+        )
+
+        create_notification(
+            destinataire=artisan.user,
+            type_notification=Notification.Type.NOUVEL_AVIS,
+            titre="Nouvel avis reçu",
+            message=(
+                f"Vous avez reçu une note de "
+                f"{review.rating}/5."
+            ),
+            lien=f"/artisans/{artisan.id}/avis",
         )
 
     def perform_update(self, serializer):

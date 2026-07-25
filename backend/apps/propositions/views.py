@@ -7,15 +7,15 @@ from rest_framework import (
 )
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from apps.messaging.models import Conversation
 
 from apps.demandes.models import DemandeTravaux
+from apps.messaging.models import Conversation
+from apps.notifications.models import Notification
+from apps.notifications.services import create_notification
 
 from .models import Proposition
 from .permissions import IsPropositionParticipant
 from .serializers import PropositionSerializer
-from apps.notifications.models import Notification
-from apps.notifications.services import create_notification
 
 
 class PropositionViewSet(viewsets.ModelViewSet):
@@ -57,10 +57,7 @@ class PropositionViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         user = self.request.user
 
-        if not hasattr(
-            user,
-            "artisan_profile",
-        ):
+        if not hasattr(user, "artisan_profile"):
             raise serializers.ValidationError(
                 {
                     "detail": (
@@ -94,22 +91,22 @@ class PropositionViewSet(viewsets.ModelViewSet):
                 }
             )
 
-        serializer.save(
+        proposition = serializer.save(
             artisan=user.artisan_profile
         )
 
-    create_notification(
-    destinataire=proposition.demande.client,
-    type_notification=(
-        Notification.Type.NOUVELLE_PROPOSITION
-    ),
-    titre="Nouvelle proposition",
-    message=(
-        f"{proposition.artisan.nom_entreprise} "
-        f"a répondu à votre demande."
-    ),
-    lien=f"/demandes/{proposition.demande_id}",
-)
+        create_notification(
+            destinataire=proposition.demande.client,
+            type_notification=(
+                Notification.Type.NOUVELLE_PROPOSITION
+            ),
+            titre="Nouvelle proposition",
+            message=(
+                f"{proposition.artisan.nom_entreprise} "
+                f"a répondu à votre demande."
+            ),
+            lien=f"/demandes/{proposition.demande_id}",
+        )
 
     def perform_update(self, serializer):
         proposition = self.get_object()
@@ -216,18 +213,14 @@ class PropositionViewSet(viewsets.ModelViewSet):
         proposition = self.get_object()
 
         if (
-            proposition.demande.client
-            != request.user
+            proposition.demande.client != request.user
             and not request.user.is_staff
         ):
             raise permissions.PermissionDenied(
                 "Seul le client peut accepter cette proposition."
             )
 
-        if (
-            proposition.statut
-            != Proposition.Statut.EN_ATTENTE
-        ):
+        if proposition.statut != Proposition.Statut.EN_ATTENTE:
             return Response(
                 {
                     "detail": (
@@ -258,27 +251,6 @@ class PropositionViewSet(viewsets.ModelViewSet):
             ]
         )
 
-        Conversation.objects.get_or_create(
-        demande=demande,
-        defaults={
-        "client": demande.client,
-        "artisan": proposition.artisan,
-    },
-)
-
-        create_notification(
-        destinataire=proposition.artisan.user,
-        type_notification=(
-        Notification.Type.PROPOSITION_ACCEPTEE
-    ),
-    titre="Proposition acceptée",
-    message=(
-        f"Votre proposition pour « {demande.titre} » "
-        f"a été acceptée."
-    ),
-    lien=f"/conversations/{demande.conversation.id}",
-)
-
         Proposition.objects.filter(
             demande=demande,
             statut=Proposition.Statut.EN_ATTENTE,
@@ -296,6 +268,27 @@ class PropositionViewSet(viewsets.ModelViewSet):
             ]
         )
 
+        conversation, _ = Conversation.objects.get_or_create(
+            demande=demande,
+            defaults={
+                "client": demande.client,
+                "artisan": proposition.artisan,
+            },
+        )
+
+        create_notification(
+            destinataire=proposition.artisan.user,
+            type_notification=(
+                Notification.Type.PROPOSITION_ACCEPTEE
+            ),
+            titre="Proposition acceptée",
+            message=(
+                f"Votre proposition pour « {demande.titre} » "
+                f"a été acceptée."
+            ),
+            lien=f"/conversations/{conversation.id}",
+        )
+
         serializer = self.get_serializer(proposition)
 
         return Response(
@@ -311,18 +304,14 @@ class PropositionViewSet(viewsets.ModelViewSet):
         proposition = self.get_object()
 
         if (
-            proposition.demande.client
-            != request.user
+            proposition.demande.client != request.user
             and not request.user.is_staff
         ):
             raise permissions.PermissionDenied(
                 "Seul le client peut refuser cette proposition."
             )
 
-        if (
-            proposition.statut
-            != Proposition.Statut.EN_ATTENTE
-        ):
+        if proposition.statut != Proposition.Statut.EN_ATTENTE:
             return Response(
                 {
                     "detail": (
@@ -338,6 +327,19 @@ class PropositionViewSet(viewsets.ModelViewSet):
                 "statut",
                 "updated_at",
             ]
+        )
+
+        create_notification(
+            destinataire=proposition.artisan.user,
+            type_notification=(
+                Notification.Type.PROPOSITION_REFUSEE
+            ),
+            titre="Proposition refusée",
+            message=(
+                f"Votre proposition pour « "
+                f"{proposition.demande.titre} » a été refusée."
+            ),
+            lien=f"/demandes/{proposition.demande_id}",
         )
 
         serializer = self.get_serializer(proposition)
