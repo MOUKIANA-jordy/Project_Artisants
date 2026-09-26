@@ -1,4 +1,3 @@
-from django.shortcuts import render
 from django.db.models import Q
 from django.utils import timezone
 from rest_framework import (
@@ -8,11 +7,12 @@ from rest_framework import (
     viewsets,
 )
 from rest_framework.decorators import action
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
-from apps.notifications.models import Notification
-from apps.notifications.services import create_notification
 
 from apps.core.pagination import StandardResultsSetPagination
+from apps.notifications.models import Notification
+from apps.notifications.services import create_notification
 
 from .models import Conversation, Message
 from .permissions import (
@@ -81,7 +81,9 @@ class ConversationViewSet(viewsets.ReadOnlyModelViewSet):
 
         return Response(
             {
-                "detail": "Les messages ont été marqués comme lus."
+                "detail": (
+                    "Les messages ont été marqués comme lus."
+                )
             },
             status=status.HTTP_200_OK,
         )
@@ -141,16 +143,22 @@ class MessageViewSet(viewsets.ModelViewSet):
         )
 
         try:
-            conversation = Conversation.objects.select_related(
-                "client",
-                "artisan__user",
-            ).get(
-                pk=conversation_id
+            conversation = (
+                Conversation.objects
+                .select_related(
+                    "client",
+                    "artisan__user",
+                )
+                .get(
+                    pk=conversation_id
+                )
             )
         except Conversation.DoesNotExist:
             raise serializers.ValidationError(
                 {
-                    "detail": "Cette conversation n’existe pas."
+                    "detail": (
+                        "Cette conversation n’existe pas."
+                    )
                 }
             )
 
@@ -163,33 +171,41 @@ class MessageViewSet(viewsets.ModelViewSet):
         )
 
         if not is_participant:
-            raise permissions.PermissionDenied(
+            raise PermissionDenied(
                 "Vous ne participez pas à cette conversation."
             )
 
         if not conversation.is_active:
             raise serializers.ValidationError(
                 {
-                    "detail": "Cette conversation est fermée."
+                    "detail": (
+                        "Cette conversation est fermée."
+                    )
                 }
             )
 
         message = serializer.save(
-        conversation=conversation,
-        sender=user,
-)
-        if conversation.client == user:
-    destinataire = conversation.artisan.user
-else:
-    destinataire = conversation.client
+            conversation=conversation,
+            sender=user,
+        )
 
-create_notification(
-    destinataire=destinataire,
-    type_notification=Notification.Type.NOUVEAU_MESSAGE,
-    titre="Nouveau message",
-    message=f"Nouveau message de {user.get_full_name() or user.email}.",
-    lien=f"/conversations/{conversation.id}",
-)
+        if conversation.client == user:
+            destinataire = conversation.artisan.user
+        else:
+            destinataire = conversation.client
+
+        create_notification(
+            destinataire=destinataire,
+            type_notification=(
+                Notification.Type.NOUVEAU_MESSAGE
+            ),
+            titre="Nouveau message",
+            message=(
+                f"Nouveau message de "
+                f"{user.get_full_name() or user.email}."
+            ),
+            lien=f"/conversations/{conversation.id}",
+        )
 
         conversation.save(
             update_fields=["updated_at"]
@@ -200,7 +216,7 @@ create_notification(
             instance.sender != self.request.user
             and not self.request.user.is_staff
         ):
-            raise permissions.PermissionDenied(
+            raise PermissionDenied(
                 "Vous ne pouvez supprimer que vos propres messages."
             )
 

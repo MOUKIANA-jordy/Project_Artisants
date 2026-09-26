@@ -1,5 +1,6 @@
 from django.shortcuts import render
 from rest_framework import permissions, serializers, viewsets
+from rest_framework.exceptions import PermissionDenied
 
 from .models import Artisan
 from .serializers import (
@@ -53,7 +54,7 @@ class ArtisanViewSet(viewsets.ModelViewSet):
             artisan.user != self.request.user
             and not self.request.user.is_staff
         ):
-            raise permissions.PermissionDenied(
+            raise PermissionDenied(
                 "Vous ne pouvez pas modifier cet artisan."
             )
 
@@ -64,7 +65,7 @@ class ArtisanViewSet(viewsets.ModelViewSet):
             instance.user != self.request.user
             and not self.request.user.is_staff
         ):
-            raise permissions.PermissionDenied(
+            raise PermissionDenied(
                 "Vous ne pouvez pas supprimer cet artisan."
             )
 

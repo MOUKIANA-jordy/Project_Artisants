@@ -7,7 +7,17 @@ from .serializers import CategorySerializer
 
 class CategoryViewSet(viewsets.ModelViewSet):
     serializer_class = CategorySerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+    def get_permissions(self):
+        if self.action in (
+            "create",
+            "update",
+            "partial_update",
+            "destroy",
+        ):
+            return [permissions.IsAdminUser()]
+
+        return [permissions.AllowAny()]
 
     def get_queryset(self):
         queryset = Category.objects.all()
@@ -19,4 +29,6 @@ class CategoryViewSet(viewsets.ModelViewSet):
 
     def perform_destroy(self, instance):
         instance.is_active = False
-        instance.save(update_fields=["is_active"])
+        instance.save(
+            update_fields=["is_active"]
+        )

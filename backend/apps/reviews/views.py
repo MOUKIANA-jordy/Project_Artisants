@@ -7,6 +7,7 @@ from rest_framework import (
     viewsets,
 )
 from rest_framework.decorators import action
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 
 from apps.core.pagination import StandardResultsSetPagination
@@ -105,7 +106,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
             review.client != self.request.user
             and not self.request.user.is_staff
         ):
-            raise permissions.PermissionDenied(
+            raise PermissionDenied(
                 "Vous ne pouvez pas modifier cet avis."
             )
 
@@ -116,7 +117,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
             instance.client != self.request.user
             and not self.request.user.is_staff
         ):
-            raise permissions.PermissionDenied(
+            raise PermissionDenied(
                 "Vous ne pouvez pas supprimer cet avis."
             )
 

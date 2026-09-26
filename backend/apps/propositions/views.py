@@ -7,6 +7,7 @@ from rest_framework import (
 )
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.exceptions import PermissionDenied
 
 from apps.demandes.models import DemandeTravaux
 from apps.messaging.models import Conversation
@@ -116,7 +117,7 @@ class PropositionViewSet(viewsets.ModelViewSet):
             proposition.artisan.user != user
             and not user.is_staff
         ):
-            raise permissions.PermissionDenied(
+            raise PermissionDenied(
                 "Seul l'artisan peut modifier sa proposition."
             )
 
@@ -139,7 +140,7 @@ class PropositionViewSet(viewsets.ModelViewSet):
             instance.artisan.user != user
             and not user.is_staff
         ):
-            raise permissions.PermissionDenied(
+            raise PermissionDenied(
                 "Seul l'artisan peut retirer sa proposition."
             )
 
@@ -216,7 +217,7 @@ class PropositionViewSet(viewsets.ModelViewSet):
             proposition.demande.client != request.user
             and not request.user.is_staff
         ):
-            raise permissions.PermissionDenied(
+            raise PermissionDenied(
                 "Seul le client peut accepter cette proposition."
             )
 
@@ -307,7 +308,7 @@ class PropositionViewSet(viewsets.ModelViewSet):
             proposition.demande.client != request.user
             and not request.user.is_staff
         ):
-            raise permissions.PermissionDenied(
+            raise PermissionDenied(
                 "Seul le client peut refuser cette proposition."
             )
 
