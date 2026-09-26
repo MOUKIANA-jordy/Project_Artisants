@@ -527,8 +527,10 @@ class DemandeTravauxAPITests(APITestCase):
         )
 
         results = (
-            "results",
-            response.data,
+            response.data["results"]
+            if isinstance(response.data, dict)
+            and "results" in response.data
+            else response.data
         )
 
         ids = [
@@ -621,8 +623,10 @@ class DemandeImageSecurityTests(APITestCase):
         )
 
         results = (
-            "results",
-            response.data,
+            response.data["results"]
+            if isinstance(response.data, dict)
+            and "results" in response.data
+            else response.data
         )
 
         self.assertEqual(
@@ -645,8 +649,10 @@ class DemandeImageSecurityTests(APITestCase):
         )
 
         results = (
-            "results",
-            response.data,
+            response.data["results"]
+            if isinstance(response.data, dict)
+            and "results" in response.data
+            else response.data
         )
 
         ids = [
@@ -674,8 +680,10 @@ class DemandeImageSecurityTests(APITestCase):
         )
 
         results = (
-            "results",
-            response.data,
+            response.data["results"]
+            if isinstance(response.data, dict)
+            and "results" in response.data
+            else response.data
         )
 
         ids = [
@@ -704,8 +712,10 @@ class DemandeImageSecurityTests(APITestCase):
         )
 
         results = (
-            "results",
-            response.data,
+            response.data["results"]
+            if isinstance(response.data, dict)
+            and "results" in response.data
+            else response.data
         )
 
         ids = [
@@ -763,8 +773,10 @@ class DemandeImageSecurityTests(APITestCase):
         )
 
         results = (
-            "results",
-            response.data,
+            response.data["results"]
+            if isinstance(response.data, dict)
+            and "results" in response.data
+            else response.data
         )
 
         ids = [

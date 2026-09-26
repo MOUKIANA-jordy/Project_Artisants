@@ -1,6 +1,7 @@
-from rest_framework import permissions, viewsets
+from rest_framework import permissions, status, viewsets
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.parsers import FormParser, MultiPartParser
+from rest_framework.response import Response
 
 from .models import ArtisanImage
 from .serializers_images import ArtisanImageSerializer
@@ -8,11 +9,9 @@ from .serializers_images import ArtisanImageSerializer
 
 class ArtisanImageViewSet(viewsets.ModelViewSet):
     serializer_class = ArtisanImageSerializer
-
     permission_classes = [
-        permissions.IsAuthenticatedOrReadOnly,
+        permissions.IsAuthenticatedOrReadOnly
     ]
-
     parser_classes = [
         MultiPartParser,
         FormParser,
@@ -32,38 +31,54 @@ class ArtisanImageViewSet(viewsets.ModelViewSet):
 
         user = self.request.user
 
-        # L'administrateur peut voir les images
-        # des profils actifs et inactifs.
         if user.is_authenticated and user.is_staff:
             return queryset
 
-        # Le public et les utilisateurs normaux
-        # ne voient que les images des artisans actifs.
         return queryset.filter(
             artisan__is_active=True
         )
 
-    def perform_create(self, serializer):
-        user = self.request.user
+    def create(self, request, *args, **kwargs):
+        user = request.user
 
+        # Seul un utilisateur possédant un profil artisan
+        # peut ajouter une image.
         if not hasattr(user, "artisan_profile"):
             raise PermissionDenied(
-                "Vous devez avoir un profil artisan "
-                "pour ajouter une image."
+                "Seul un artisan peut ajouter une image."
             )
 
         artisan = user.artisan_profile
+        artisan_id = self.kwargs.get("artisan_pk")
 
-        if str(artisan.id) != str(
-            self.kwargs.get("artisan_pk")
-        ):
+        # Un artisan ne peut ajouter une image
+        # qu'à son propre profil.
+        if str(artisan.id) != str(artisan_id):
             raise PermissionDenied(
                 "Vous ne pouvez ajouter des images "
-                "qu’à votre propre profil."
+                "qu'à votre propre profil artisan."
             )
+
+        serializer = self.get_serializer(
+            data=request.data
+        )
+
+        serializer.is_valid(
+            raise_exception=True
+        )
 
         serializer.save(
             artisan=artisan
+        )
+
+        headers = self.get_success_headers(
+            serializer.data
+        )
+
+        return Response(
+            serializer.data,
+            status=status.HTTP_201_CREATED,
+            headers=headers,
         )
 
     def perform_update(self, serializer):

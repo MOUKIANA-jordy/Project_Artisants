@@ -1,3 +1,4 @@
+from django.core.files.uploadedfile import SimpleUploadedFile
 from rest_framework import status
 from rest_framework.test import APITestCase
 
@@ -539,6 +540,22 @@ class ArtisanImageSecurityTests(APITestCase):
             f"{self.image.id}/"
         )
 
+    def valid_image(self):
+        return SimpleUploadedFile(
+            "test.webp",
+            (
+                b"RIFF\x1a\x00\x00\x00WEBP"
+                b"VP8 \x0e\x00\x00\x00"
+                b"\x10\x00\x00\x00\x9d\x01\x2a"
+                b"\x01\x00\x01\x00\x00\x00"
+            ),
+            content_type="image/webp",
+        )
+
+    # --------------------------------------------------
+    # VISIBILITÉ DES IMAGES
+    # --------------------------------------------------
+
     def test_anonymous_can_see_active_artisan_images(self):
         response = self.client.get(
             self.images_url()
@@ -549,9 +566,11 @@ class ArtisanImageSecurityTests(APITestCase):
             status.HTTP_200_OK,
         )
 
-        results = response.data.get(
-            "results",
-            response.data,
+        results = (
+            response.data["results"]
+            if isinstance(response.data, dict)
+            and "results" in response.data
+            else response.data
         )
 
         ids = [
@@ -577,9 +596,11 @@ class ArtisanImageSecurityTests(APITestCase):
             status.HTTP_200_OK,
         )
 
-        results = response.data.get(
-            "results",
-            response.data,
+        results = (
+            response.data["results"]
+            if isinstance(response.data, dict)
+            and "results" in response.data
+            else response.data
         )
 
         ids = [
@@ -604,9 +625,16 @@ class ArtisanImageSecurityTests(APITestCase):
             self.images_url()
         )
 
-        results = response.data.get(
-            "results",
-            response.data,
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_200_OK,
+        )
+
+        results = (
+            response.data["results"]
+            if isinstance(response.data, dict)
+            and "results" in response.data
+            else response.data
         )
 
         ids = [
@@ -636,9 +664,11 @@ class ArtisanImageSecurityTests(APITestCase):
             status.HTTP_200_OK,
         )
 
-        results = response.data.get(
-            "results",
-            response.data,
+        results = (
+            response.data["results"]
+            if isinstance(response.data, dict)
+            and "results" in response.data
+            else response.data
         )
 
         ids = [
@@ -650,6 +680,10 @@ class ArtisanImageSecurityTests(APITestCase):
             self.image.id,
             ids,
         )
+
+    # --------------------------------------------------
+    # MODIFICATION
+    # --------------------------------------------------
 
     def test_other_artisan_cannot_modify_image(self):
         self.client.force_authenticate(
@@ -676,6 +710,10 @@ class ArtisanImageSecurityTests(APITestCase):
             "Réalisation test",
         )
 
+    # --------------------------------------------------
+    # UPLOAD
+    # --------------------------------------------------
+
     def test_client_without_artisan_profile_cannot_upload_image(self):
         self.client.force_authenticate(
             user=self.client_user
@@ -683,7 +721,10 @@ class ArtisanImageSecurityTests(APITestCase):
 
         response = self.client.post(
             self.images_url(),
-            {},
+            {
+                "image": self.valid_image(),
+                "legende": "Tentative interdite",
+            },
             format="multipart",
         )
 
