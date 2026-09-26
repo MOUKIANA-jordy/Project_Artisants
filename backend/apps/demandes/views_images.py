@@ -1,4 +1,6 @@
+from django.db.models import Q
 from rest_framework import permissions, viewsets
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.parsers import FormParser, MultiPartParser
 
 from .models import DemandeImage, DemandeTravaux
@@ -25,8 +27,38 @@ class DemandeImageViewSet(viewsets.ModelViewSet):
 
         demande_id = self.kwargs.get("demande_pk")
 
-        return queryset.filter(
+        queryset = queryset.filter(
             demande_id=demande_id
+        )
+
+        user = self.request.user
+
+        # L'administrateur peut voir toutes les images.
+        if user.is_authenticated and user.is_staff:
+            return queryset
+
+        statuts_publics = [
+            DemandeTravaux.Statut.PUBLIEE,
+            DemandeTravaux.Statut.EN_COURS,
+        ]
+
+        # Un utilisateur connecté peut voir :
+        # - les images des demandes publiques ;
+        # - les images de ses propres demandes.
+        if user.is_authenticated:
+            return queryset.filter(
+                Q(
+                    demande__statut__in=statuts_publics
+                )
+                | Q(
+                    demande__client=user
+                )
+            )
+
+        # Un visiteur anonyme ne voit que les images
+        # des demandes publiques.
+        return queryset.filter(
+            demande__statut__in=statuts_publics
         )
 
     def perform_create(self, serializer):
@@ -38,7 +70,7 @@ class DemandeImageViewSet(viewsets.ModelViewSet):
             demande.client != self.request.user
             and not self.request.user.is_staff
         ):
-            raise permissions.PermissionDenied(
+            raise PermissionDenied(
                 "Vous ne pouvez pas ajouter d’image "
                 "à cette demande."
             )
@@ -54,7 +86,7 @@ class DemandeImageViewSet(viewsets.ModelViewSet):
             image.demande.client != self.request.user
             and not self.request.user.is_staff
         ):
-            raise permissions.PermissionDenied(
+            raise PermissionDenied(
                 "Vous ne pouvez pas modifier cette image."
             )
 
@@ -65,7 +97,7 @@ class DemandeImageViewSet(viewsets.ModelViewSet):
             instance.demande.client != self.request.user
             and not self.request.user.is_staff
         ):
-            raise permissions.PermissionDenied(
+            raise PermissionDenied(
                 "Vous ne pouvez pas supprimer cette image."
             )
 

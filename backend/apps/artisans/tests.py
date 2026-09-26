@@ -4,7 +4,7 @@ from rest_framework.test import APITestCase
 from apps.accounts.models import User
 from apps.categories.models import Category
 
-from .models import Artisan
+from .models import Artisan, ArtisanImage
 
 
 class ArtisanAPITests(APITestCase):
@@ -469,4 +469,225 @@ class ArtisanAPITests(APITestCase):
 
         self.assertTrue(
             artisan.is_active
+        )
+
+
+class ArtisanImageSecurityTests(APITestCase):
+
+    def setUp(self):
+        self.artisan_user = User.objects.create_user(
+            username="image_artisan",
+            email="image.artisan@example.com",
+            password="TestPassword123!",
+            role=User.Role.ARTISAN,
+        )
+
+        self.other_artisan_user = User.objects.create_user(
+            username="image_other_artisan",
+            email="image.other.artisan@example.com",
+            password="TestPassword123!",
+            role=User.Role.ARTISAN,
+        )
+
+        self.client_user = User.objects.create_user(
+            username="image_client",
+            email="image.client@example.com",
+            password="TestPassword123!",
+            role=User.Role.CLIENT,
+        )
+
+        self.admin = User.objects.create_user(
+            username="image_admin_artisan",
+            email="image.admin.artisan@example.com",
+            password="TestPassword123!",
+            role=User.Role.ADMIN,
+            is_staff=True,
+        )
+
+        self.artisan = Artisan.objects.create(
+            user=self.artisan_user,
+            nom_entreprise="Artisan Images",
+            description="Test images artisan",
+            ville="Brazzaville",
+            is_active=True,
+        )
+
+        self.other_artisan = Artisan.objects.create(
+            user=self.other_artisan_user,
+            nom_entreprise="Autre Artisan",
+            description="Autre artisan",
+            ville="Brazzaville",
+            is_active=True,
+        )
+
+        self.image = ArtisanImage.objects.create(
+            artisan=self.artisan,
+            image="artisans/realisations/test.jpg",
+            legende="Réalisation test",
+        )
+
+    def images_url(self):
+        return (
+            f"/api/artisans/"
+            f"{self.artisan.id}/images/"
+        )
+
+    def image_detail_url(self):
+        return (
+            f"/api/artisans/"
+            f"{self.artisan.id}/images/"
+            f"{self.image.id}/"
+        )
+
+    def test_anonymous_can_see_active_artisan_images(self):
+        response = self.client.get(
+            self.images_url()
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_200_OK,
+        )
+
+        results = response.data.get(
+            "results",
+            response.data,
+        )
+
+        ids = [
+            item["id"]
+            for item in results
+        ]
+
+        self.assertIn(
+            self.image.id,
+            ids,
+        )
+
+    def test_anonymous_cannot_see_inactive_artisan_images(self):
+        self.artisan.is_active = False
+        self.artisan.save()
+
+        response = self.client.get(
+            self.images_url()
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_200_OK,
+        )
+
+        results = response.data.get(
+            "results",
+            response.data,
+        )
+
+        ids = [
+            item["id"]
+            for item in results
+        ]
+
+        self.assertNotIn(
+            self.image.id,
+            ids,
+        )
+
+    def test_normal_user_cannot_see_inactive_artisan_images(self):
+        self.artisan.is_active = False
+        self.artisan.save()
+
+        self.client.force_authenticate(
+            user=self.client_user
+        )
+
+        response = self.client.get(
+            self.images_url()
+        )
+
+        results = response.data.get(
+            "results",
+            response.data,
+        )
+
+        ids = [
+            item["id"]
+            for item in results
+        ]
+
+        self.assertNotIn(
+            self.image.id,
+            ids,
+        )
+
+    def test_admin_can_see_inactive_artisan_images(self):
+        self.artisan.is_active = False
+        self.artisan.save()
+
+        self.client.force_authenticate(
+            user=self.admin
+        )
+
+        response = self.client.get(
+            self.images_url()
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_200_OK,
+        )
+
+        results = response.data.get(
+            "results",
+            response.data,
+        )
+
+        ids = [
+            item["id"]
+            for item in results
+        ]
+
+        self.assertIn(
+            self.image.id,
+            ids,
+        )
+
+    def test_other_artisan_cannot_modify_image(self):
+        self.client.force_authenticate(
+            user=self.other_artisan_user
+        )
+
+        response = self.client.patch(
+            self.image_detail_url(),
+            {
+                "legende": "Image piratée",
+            },
+            format="multipart",
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_403_FORBIDDEN,
+        )
+
+        self.image.refresh_from_db()
+
+        self.assertEqual(
+            self.image.legende,
+            "Réalisation test",
+        )
+
+    def test_client_without_artisan_profile_cannot_upload_image(self):
+        self.client.force_authenticate(
+            user=self.client_user
+        )
+
+        response = self.client.post(
+            self.images_url(),
+            {},
+            format="multipart",
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_403_FORBIDDEN,
         )

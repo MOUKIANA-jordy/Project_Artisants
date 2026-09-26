@@ -9,6 +9,7 @@ from rest_framework import (
 )
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.exceptions import PermissionDenied
 
 from apps.core.pagination import StandardResultsSetPagination
 
@@ -179,7 +180,7 @@ class DemandeTravauxViewSet(viewsets.ModelViewSet):
             demande.client != request.user
             and not request.user.is_staff
         ):
-            raise permissions.PermissionDenied(
+            raise PermissionDenied(
                 "Vous ne pouvez pas publier cette demande."
             )
 
@@ -221,7 +222,7 @@ class DemandeTravauxViewSet(viewsets.ModelViewSet):
             demande.client != request.user
             and not request.user.is_staff
         ):
-            raise permissions.PermissionDenied(
+            raise PermissionDenied(
                 "Vous ne pouvez pas annuler cette demande."
             )
 
@@ -265,7 +266,7 @@ class DemandeTravauxViewSet(viewsets.ModelViewSet):
             demande.client != request.user
             and not request.user.is_staff
         ):
-            raise permissions.PermissionDenied(
+            raise PermissionDenied(
                 "Seul le client peut terminer cette demande."
             )
 

@@ -1,4 +1,5 @@
 from rest_framework import permissions, viewsets
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.parsers import FormParser, MultiPartParser
 
 from .models import ArtisanImage
@@ -25,17 +26,38 @@ class ArtisanImageViewSet(viewsets.ModelViewSet):
 
         artisan_id = self.kwargs.get("artisan_pk")
 
-        return queryset.filter(
+        queryset = queryset.filter(
             artisan_id=artisan_id
         )
 
+        user = self.request.user
+
+        # L'administrateur peut voir les images
+        # des profils actifs et inactifs.
+        if user.is_authenticated and user.is_staff:
+            return queryset
+
+        # Le public et les utilisateurs normaux
+        # ne voient que les images des artisans actifs.
+        return queryset.filter(
+            artisan__is_active=True
+        )
+
     def perform_create(self, serializer):
-        artisan = self.request.user.artisan_profile
+        user = self.request.user
+
+        if not hasattr(user, "artisan_profile"):
+            raise PermissionDenied(
+                "Vous devez avoir un profil artisan "
+                "pour ajouter une image."
+            )
+
+        artisan = user.artisan_profile
 
         if str(artisan.id) != str(
             self.kwargs.get("artisan_pk")
         ):
-            raise permissions.PermissionDenied(
+            raise PermissionDenied(
                 "Vous ne pouvez ajouter des images "
                 "qu’à votre propre profil."
             )
@@ -51,7 +73,7 @@ class ArtisanImageViewSet(viewsets.ModelViewSet):
             image.artisan.user != self.request.user
             and not self.request.user.is_staff
         ):
-            raise permissions.PermissionDenied(
+            raise PermissionDenied(
                 "Vous ne pouvez pas modifier cette image."
             )
 
@@ -62,7 +84,7 @@ class ArtisanImageViewSet(viewsets.ModelViewSet):
             instance.artisan.user != self.request.user
             and not self.request.user.is_staff
         ):
-            raise permissions.PermissionDenied(
+            raise PermissionDenied(
                 "Vous ne pouvez pas supprimer cette image."
             )
 
