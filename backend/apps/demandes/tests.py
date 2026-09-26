@@ -7,7 +7,7 @@ from rest_framework.test import APITestCase
 from apps.accounts.models import User
 from apps.categories.models import Category
 
-from .models import DemandeTravaux
+from .models import DemandeImage, DemandeTravaux
 
 
 class DemandeTravauxAPITests(APITestCase):
@@ -526,7 +526,7 @@ class DemandeTravauxAPITests(APITestCase):
             status.HTTP_200_OK,
         )
 
-        results = response.data.get(
+        results = (
             "results",
             response.data,
         )
@@ -547,5 +547,232 @@ class DemandeTravauxAPITests(APITestCase):
 
         self.assertNotIn(
             autre_demande.id,
+            ids,
+        )
+
+
+class DemandeImageSecurityTests(APITestCase):
+
+    def setUp(self):
+        self.owner = User.objects.create_user(
+            username="image_owner",
+            email="image.owner@example.com",
+            password="TestPassword123!",
+            role=User.Role.CLIENT,
+        )
+
+        self.other_client = User.objects.create_user(
+            username="image_other_client",
+            email="image.other@example.com",
+            password="TestPassword123!",
+            role=User.Role.CLIENT,
+        )
+
+        self.admin = User.objects.create_user(
+            username="image_admin",
+            email="image.admin@example.com",
+            password="TestPassword123!",
+            role=User.Role.ADMIN,
+            is_staff=True,
+        )
+
+        self.category = Category.objects.create(
+            nom="Électricité images",
+            slug="electricite-images",
+            is_active=True,
+        )
+
+        self.demande = DemandeTravaux.objects.create(
+            client=self.owner,
+            categorie=self.category,
+            titre="Demande privée avec image",
+            description="Test sécurité image.",
+            ville="Brazzaville",
+            statut=DemandeTravaux.Statut.BROUILLON,
+        )
+
+        self.image = DemandeImage.objects.create(
+            demande=self.demande,
+            image="demandes/photos/test.jpg",
+            legende="Photo privée",
+        )
+
+    def images_url(self):
+        return (
+            f"/api/demandes/"
+            f"{self.demande.id}/images/"
+        )
+
+    def image_detail_url(self):
+        return (
+            f"/api/demandes/"
+            f"{self.demande.id}/images/"
+            f"{self.image.id}/"
+        )
+
+    def test_anonymous_cannot_see_draft_demande_images(self):
+        response = self.client.get(
+            self.images_url()
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_200_OK,
+        )
+
+        results = (
+            "results",
+            response.data,
+        )
+
+        self.assertEqual(
+            len(results),
+            0,
+        )
+
+    def test_owner_can_see_own_draft_demande_images(self):
+        self.client.force_authenticate(
+            user=self.owner
+        )
+
+        response = self.client.get(
+            self.images_url()
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_200_OK,
+        )
+
+        results = (
+            "results",
+            response.data,
+        )
+
+        ids = [
+            item["id"]
+            for item in results
+        ]
+
+        self.assertIn(
+            self.image.id,
+            ids,
+        )
+
+    def test_other_client_cannot_see_draft_demande_images(self):
+        self.client.force_authenticate(
+            user=self.other_client
+        )
+
+        response = self.client.get(
+            self.images_url()
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_200_OK,
+        )
+
+        results = (
+            "results",
+            response.data,
+        )
+
+        ids = [
+            item["id"]
+            for item in results
+        ]
+
+        self.assertNotIn(
+            self.image.id,
+            ids,
+        )
+
+    def test_anonymous_can_see_published_demande_images(self):
+        self.demande.statut = (
+            DemandeTravaux.Statut.PUBLIEE
+        )
+        self.demande.save()
+
+        response = self.client.get(
+            self.images_url()
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_200_OK,
+        )
+
+        results = (
+            "results",
+            response.data,
+        )
+
+        ids = [
+            item["id"]
+            for item in results
+        ]
+
+        self.assertIn(
+            self.image.id,
+            ids,
+        )
+
+    def test_other_client_cannot_modify_demande_image(self):
+        self.demande.statut = (
+            DemandeTravaux.Statut.PUBLIEE
+        )
+        self.demande.save()
+
+        self.client.force_authenticate(
+            user=self.other_client
+        )
+
+        response = self.client.patch(
+            self.image_detail_url(),
+            {
+                "legende": "Modification interdite",
+            },
+            format="multipart",
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_403_FORBIDDEN,
+        )
+
+        self.image.refresh_from_db()
+
+        self.assertEqual(
+            self.image.legende,
+            "Photo privée",
+        )
+
+    def test_admin_can_see_draft_demande_images(self):
+        self.client.force_authenticate(
+            user=self.admin
+        )
+
+        response = self.client.get(
+            self.images_url()
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_200_OK,
+        )
+
+        results = (
+            "results",
+            response.data,
+        )
+
+        ids = [
+            item["id"]
+            for item in results
+        ]
+
+        self.assertIn(
+            self.image.id,
             ids,
         )
