@@ -259,16 +259,11 @@ REST_FRAMEWORK = {
         ),
     ),
 
-    # On garde AllowAny pour l'instant.
-    #
-    # Les permissions de chaque endpoint sont déjà définies
-    # dans les ViewSets.
-    #
-    # Après notre audit complet des permissions, on pourra
-    # éventuellement passer la valeur globale à
-    # IsAuthenticated.
+    # Sécurité par défaut :
+    # toute API est privée sauf si une vue autorise
+    # explicitement un accès public.
     "DEFAULT_PERMISSION_CLASSES": (
-        "rest_framework.permissions.AllowAny",
+        "rest_framework.permissions.IsAuthenticated",
     ),
 
     "DEFAULT_FILTER_BACKENDS": (
