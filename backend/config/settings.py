@@ -289,7 +289,7 @@ SIMPLE_JWT = {
 
     # Pour l'instant on conserve le comportement existant.
     # On modifiera ce point après les tests JWT.
-    "BLACKLIST_AFTER_ROTATION": False,
+    "BLACKLIST_AFTER_ROTATION": True,
 
     "AUTH_HEADER_TYPES": (
         "Bearer",

@@ -312,4 +312,115 @@ class AccountsAPITests(APITestCase):
         self.assertEqual(
             response.status_code,
             status.HTTP_401_UNAUTHORIZED,
+        
+    )
+
+    # --------------------------------------------------
+    # REFRESH TOKEN
+    # --------------------------------------------------
+
+    def test_refresh_token_rotation(self):
+        login_response = self.client.post(
+            "/api/auth/login/",
+            {
+                "email": self.user.email,
+                "password": self.password,
+            },
+            format="json",
+        )
+
+        self.assertEqual(
+            login_response.status_code,
+            status.HTTP_200_OK,
+        )
+
+        old_refresh = login_response.data["refresh"]
+
+        response = self.client.post(
+            "/api/auth/refresh/",
+            {
+                "refresh": old_refresh,
+            },
+            format="json",
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_200_OK,
+        )
+
+        self.assertIn("access", response.data)
+        self.assertIn("refresh", response.data)
+
+        new_refresh = response.data["refresh"]
+
+        self.assertNotEqual(
+            old_refresh,
+            new_refresh,
+        )
+
+    def test_old_refresh_token_is_blacklisted_after_rotation(self):
+        login_response = self.client.post(
+            "/api/auth/login/",
+            {
+                "email": self.user.email,
+                "password": self.password,
+            },
+            format="json",
+        )
+
+        self.assertEqual(
+            login_response.status_code,
+            status.HTTP_200_OK,
+        )
+
+        old_refresh = login_response.data["refresh"]
+
+        first_refresh = self.client.post(
+            "/api/auth/refresh/",
+            {
+                "refresh": old_refresh,
+            },
+            format="json",
+        )
+
+        self.assertEqual(
+            first_refresh.status_code,
+            status.HTTP_200_OK,
+        )
+
+        # Après rotation, l'ancien refresh token
+        # ne doit plus pouvoir être réutilisé.
+        second_refresh = self.client.post(
+            "/api/auth/refresh/",
+            {
+                "refresh": old_refresh,
+            },
+            format="json",
+        )
+
+        self.assertEqual(
+            second_refresh.status_code,
+            status.HTTP_401_UNAUTHORIZED,
+        )
+
+            # Le nouveau refresh token doit rester valide.
+        new_refresh = first_refresh.data["refresh"]
+
+        new_refresh_response = self.client.post(
+            "/api/auth/refresh/",
+            {
+                "refresh": new_refresh,
+            },
+            format="json",
+        )
+
+        self.assertEqual(
+            new_refresh_response.status_code,
+            status.HTTP_200_OK,
+        )
+
+        self.assertIn(
+            "access",
+            new_refresh_response.data,
         )
