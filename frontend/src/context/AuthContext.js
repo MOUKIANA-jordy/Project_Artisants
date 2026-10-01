@@ -94,4 +94,3 @@ export function useAuth() {
 
   return context;
 }
-EOF

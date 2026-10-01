@@ -62,55 +62,48 @@ input {
     );
 }
 
+
+/* =========================================
+   LOGO
+========================================= */
+
 .brand {
   display: flex;
   align-items: center;
-  gap: 12px;
-
   flex-shrink: 0;
 }
 
-.brand-symbol {
+.brand-logo {
+  width: 220px;
+  height: 72px;
+
   display: flex;
   align-items: center;
-  justify-content: center;
 
-  width: 52px;
-  height: 52px;
+  flex-shrink: 0;
 
-  border-radius: 14px;
+  overflow: hidden;
 
-  font-size: 30px;
-
-  background: #007a4d;
+  text-decoration: none;
 }
 
-.brand-text {
-  display: flex;
-  flex-direction: column;
-}
+.brand-logo-image {
+  display: block;
 
-.brand-text strong {
-  font-size: 17px;
-  line-height: 1.05;
-  letter-spacing: 0.4px;
-}
+  width: 100%;
+  height: 100%;
 
-.brand-text strong span {
-  color: #f5c400;
-}
+  max-width: 220px;
+  max-height: 72px;
 
-.brand-text small {
-  margin-top: 5px;
-
-  color: rgba(255, 255, 255, 0.75);
-
-  font-size: 9px;
-  line-height: 1.2;
+  object-fit: contain;
+  object-position: left center;
 }
 
 
-/* Navigation */
+/* =========================================
+   NAVIGATION
+========================================= */
 
 .home-navigation {
   display: flex;
@@ -155,7 +148,9 @@ input {
 }
 
 
-/* Header buttons */
+/* =========================================
+   HEADER BUTTONS
+========================================= */
 
 .header-actions {
   display: flex;
@@ -215,23 +210,19 @@ input {
 
   color: white;
 
-  /*
-   * On remplacera ensuite ce fond
-   * par notre vraie photo d'artisan.
-   */
   background:
-  linear-gradient(
-    90deg,
-    rgba(0, 24, 18, 0.97) 0%,
-    rgba(0, 30, 22, 0.88) 32%,
-    rgba(0, 20, 15, 0.48) 58%,
-    rgba(0, 0, 0, 0.18) 100%
-  ),
-  url("../assets/images/hero-artisan.jpg");
+    linear-gradient(
+      90deg,
+      rgba(0, 24, 18, 0.97) 0%,
+      rgba(0, 30, 22, 0.88) 32%,
+      rgba(0, 20, 15, 0.48) 58%,
+      rgba(0, 0, 0, 0.18) 100%
+    ),
+    url("../assets/images/hero-artisan.jpg");
 
-background-size: cover;
-background-position: center;
-background-repeat: no-repeat;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
 .hero::after {
@@ -243,13 +234,13 @@ background-repeat: no-repeat;
   pointer-events: none;
 
   background:
-  linear-gradient(
-    180deg,
-    rgba(0, 18, 14, 0.35) 0%,
-    transparent 30%,
-    rgba(0, 0, 0, 0.22) 70%,
-    rgba(0, 0, 0, 0.72) 100%
-  );
+    linear-gradient(
+      180deg,
+      rgba(0, 18, 14, 0.35) 0%,
+      transparent 30%,
+      rgba(0, 0, 0, 0.22) 70%,
+      rgba(0, 0, 0, 0.72) 100%
+    );
 }
 
 .hero-overlay {
@@ -324,6 +315,7 @@ background-repeat: no-repeat;
   width: min(780px, 100%);
 
   display: grid;
+
   grid-template-columns:
     minmax(250px, 1.5fr)
     minmax(170px, 0.8fr)
@@ -539,7 +531,9 @@ background-repeat: no-repeat;
 }
 
 
-/* Category cards */
+/* =========================================
+   CATEGORY CARDS
+========================================= */
 
 .categories-grid {
   display: grid;
@@ -608,10 +602,6 @@ background-repeat: no-repeat;
     );
 }
 
-.category-image span {
-  font-size: 55px;
-}
-
 .category-info {
   min-height: 57px;
 
@@ -623,12 +613,12 @@ background-repeat: no-repeat;
 }
 
 .category-icon {
+  width: 30px;
+  height: 30px;
+
   display: flex;
   align-items: center;
   justify-content: center;
-
-  width: 30px;
-  height: 30px;
 
   border-radius: 8px;
 
@@ -839,10 +829,11 @@ background-repeat: no-repeat;
   .header-actions {
     margin-left: auto;
   }
-  
+
+  .brand-logo,
   .brand-logo-image {
     width: 180px;
-    height: 65px;
+    height: 60px;
   }
 
   .hero-features {
@@ -872,24 +863,10 @@ background-repeat: no-repeat;
     padding: 12px 18px;
   }
 
-  .brand-symbol {
-    width: 42px;
-    height: 42px;
-
-    font-size: 23px;
-  }
-
-  .brand-text strong {
-    font-size: 13px;
-  }
-
+  .brand-logo,
   .brand-logo-image {
-    width: 180px;
-    height: 65px;
-  }
-
-  .brand-text small {
-    display: none;
+    width: 145px;
+    height: 50px;
   }
 
   .login-button {
@@ -1065,22 +1042,4 @@ background-repeat: no-repeat;
 
     padding: 40px 25px;
   }
-}
-
-.brand-logo {
-  display: flex;
-  align-items: center;
-  flex-shrink: 0;
-
-  text-decoration: none;
-}
-
-.brand-logo-image {
-  display: block;
-
-  width: 240px;
-  height: 82px;
-
-  object-fit: contain;
-  object-position: left center;
 }

@@ -1,27 +1,127 @@
-import { useEffect, useState } from "react";
-import api from "./services/api";
+import {
+  BrowserRouter,
+  Navigate,
+  Route,
+  Routes,
+} from "react-router-dom";
 
-function App() {
-  const [status, setStatus] = useState("Connexion au backend...");
+import Home from "./pages/Home";
+import Login from "./pages/Login";
+import ProtectedRoute from "./routes/ProtectedRoute";
+import { useAuth } from "./context/AuthContext";
+import ClientDashboard from "./pages/client/ClientDashboard";
 
-  useEffect(() => {
-    api
-      .get("/api/categories/")
-      .then((response) => {
-        console.log("Catégories :", response.data);
-        setStatus("Frontend connecté au backend Django ✅");
-      })
-      .catch((error) => {
-        console.error("Erreur API :", error);
-        setStatus("Erreur de connexion au backend ❌");
-      });
-  }, []);
+
+function ArtisanDashboard() {
+  const { user, logout } = useAuth();
 
   return (
-    <main style={{ padding: "40px" }}>
-      <h1>Annuaire des Artisans</h1>
-      <p>{status}</p>
+    <main>
+      <h1>Espace Artisan</h1>
+
+      <p>
+        Bienvenue {user?.first_name}.
+      </p>
+
+      <button onClick={logout}>
+        Se déconnecter
+      </button>
     </main>
+  );
+}
+
+
+function AdminDashboard() {
+  const { user, logout } = useAuth();
+
+  return (
+    <main>
+      <h1>Administration</h1>
+
+      <p>
+        Bienvenue {user?.first_name}.
+      </p>
+
+      <button onClick={logout}>
+        Se déconnecter
+      </button>
+    </main>
+  );
+}
+
+
+function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+
+        {/* PAGE D'ACCUEIL */}
+        <Route
+          path="/"
+          element={<Home />}
+        />
+
+        {/* CONNEXION */}
+        <Route
+          path="/login"
+          element={<Login />}
+        />
+
+        {/* ESPACE CLIENT */}
+        <Route
+          element={
+            <ProtectedRoute
+              allowedRoles={["client"]}
+            />
+          }
+        >
+          <Route
+            path="/client"
+            element={<ClientDashboard />}
+          />
+        </Route>
+
+        {/* ESPACE ARTISAN */}
+        <Route
+          element={
+            <ProtectedRoute
+              allowedRoles={["artisan"]}
+            />
+          }
+        >
+          <Route
+            path="/artisan"
+            element={<ArtisanDashboard />}
+          />
+        </Route>
+
+        {/* ESPACE ADMIN */}
+        <Route
+          element={
+            <ProtectedRoute
+              allowedRoles={["admin"]}
+            />
+          }
+        >
+          <Route
+            path="/admin"
+            element={<AdminDashboard />}
+          />
+        </Route>
+
+        {/* PAGE INCONNUE */}
+        <Route
+          path="*"
+          element={
+            <Navigate
+              to="/"
+              replace
+            />
+          }
+        />
+
+      </Routes>
+    </BrowserRouter>
   );
 }
 
